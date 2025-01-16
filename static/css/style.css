@@ -37,12 +37,17 @@ body {
 }
 
 button {
-    padding: 10px 20px;
-    background-color: #4CAF50;
-    color: white;
+    color: white !important; /* Білий текст */
+    background-color: #007bff; /* Синій фон */
     border: none;
+    padding: 10px 20px;
+    font-size: 16px;
     border-radius: 5px;
     cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3; /* Темніший синій при наведенні */
 }
 
 button:hover {
