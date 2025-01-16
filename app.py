@@ -59,10 +59,10 @@ st.markdown(
         color: black; /* Чорний текст для міток */
     }
 
-    /* Кнопки */
+    /* Загальні стилі для кнопок */
     button {
-        color: white !important; /* Білий текст */
-        background-color: #007bff; /* Синій фон */
+        color: white !important;
+        background-color: #007bff !important;
         border: none;
         padding: 10px 20px;
         font-size: 16px;
@@ -70,10 +70,26 @@ st.markdown(
         cursor: pointer;
     }
 
+    /* Стиль для кнопок при наведенні */
     button:hover {
-        background-color: #0056b3; /* Темніший синій при наведенні */
+        background-color: #0056b3 !important;
     }
 
+    /* Стиль для кнопок Streamlit */
+    div.stButton > button {
+        color: white !important;
+        background-color: #007bff !important;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    div.stButton > button:hover {
+        background-color: #0056b3 !important;
+    }
+    
     /* Текст у боковому меню */
     .css-1aumxhk, .css-qbe2hs {
         color: white !important; /* Білий текст у боковій панелі */
@@ -81,7 +97,7 @@ st.markdown(
 
     /* Лінки */
     a {
-        color: #0056b3; /* Темно-синій для посилань */
+        color: white; /* Темно-синій для посилань */
         text-decoration: none;
     }
 
