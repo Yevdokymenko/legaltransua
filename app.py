@@ -61,12 +61,17 @@ st.markdown(
 
     /* Кнопки */
     button {
-        color: white;
-        background-color: #4CAF50; /* Зелений фон */
+        color: white !important; /* Білий текст */
+        background-color: #007bff; /* Синій фон */
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
     }
 
     button:hover {
-        background-color: #45a049;
+        background-color: #0056b3; /* Темніший синій при наведенні */
     }
 
     /* Текст у боковому меню */
