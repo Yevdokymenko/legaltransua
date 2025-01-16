@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ігнорування середовищних файлів
 .env
 key.env
@@ -24,3 +25,6 @@ temp/
 
 # Ігнорування інших тимчасових папок і файлів
 static/.DS_Store
+=======
+.DS_Store
+>>>>>>> 7ebd4d4 (Add .DS_Store to .gitignore)
