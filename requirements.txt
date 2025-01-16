@@ -1,8 +1,11 @@
 streamlit
 python-dotenv
-openai
-transformers
-tqdm
 googletrans==4.0.0-rc1
+transformers
+torch
+openai
+fitz
 bs4
+docx
+tqdm
 PyMuPDF
