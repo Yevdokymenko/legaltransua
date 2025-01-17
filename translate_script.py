@@ -14,7 +14,7 @@ import os
 from docx.enum.section import WD_ORIENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from tqdm import tqdm
+from docx import Document
 import fitz  # PyMuPDF
 import requests
 from bs4 import BeautifulSoup
