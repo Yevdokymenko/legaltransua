@@ -2,13 +2,15 @@ import os
 import streamlit as st
 from translate_script import (
     extract_text, translate_text_google, translate_text_marian, translate_text_openai,
-    setup_document_orientation, add_title, create_translation_table
+    setup_document_orientation, add_title, create_translation_table, extract_text_from_url
 )
 from transformers import MarianMTModel, MarianTokenizer
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import docx
 import logging
 import openai
+import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -59,10 +61,10 @@ st.markdown(
         color: black; /* Чорний текст для міток */
     }
 
-    /* Загальні стилі для кнопок */
+    /* Кнопки */
     button {
-        color: white !important;
-        background-color: #007bff !important;
+        color: white !important; /* Білий текст */
+        background-color: #007bff; /* Синій фон */
         border: none;
         padding: 10px 20px;
         font-size: 16px;
@@ -70,26 +72,10 @@ st.markdown(
         cursor: pointer;
     }
 
-    /* Стиль для кнопок при наведенні */
     button:hover {
-        background-color: #0056b3 !important;
+        background-color: #0056b3; /* Темніший синій при наведенні */
     }
 
-    /* Стиль для кнопок Streamlit */
-    div.stButton > button {
-        color: white !important;
-        background-color: #007bff !important;
-        border: none;
-        padding: 10px 20px;
-        font-size: 16px;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    div.stButton > button:hover {
-        background-color: #0056b3 !important;
-    }
-    
     /* Текст у боковому меню */
     .css-1aumxhk, .css-qbe2hs {
         color: white !important; /* Білий текст у боковій панелі */
@@ -97,7 +83,7 @@ st.markdown(
 
     /* Лінки */
     a {
-        color: white; /* Темно-синій для посилань */
+        color: #0056b3; /* Темно-синій для посилань */
         text-decoration: none;
     }
 
@@ -196,7 +182,61 @@ if section == "Головна сторінка":
     elif type_of_source == "URL":
         url = st.text_input("Введіть URL:")
         if url and st.button("Розпочати переклад"):
-            st.warning("Переклад з URL ще не реалізовано.")
+            st.info(f"Завантаження тексту з {url}...")
+            paragraphs = extract_text_from_url(url)
+
+            if not paragraphs:
+                st.warning("Не вдалося знайти текст на сторінці.")
+            else:
+                st.success(f"Знайдено {len(paragraphs)} абзаців для перекладу.")
+
+                # Прогрес-бари
+                google_progress = st.progress(0, text="Google Translate: 0%")
+                marian_progress = st.progress(0, text="MarianMT: 0%")
+                openai_progress = st.progress(0, text="OpenAI GPT: 0%")
+
+                # Переклад
+                google_translations = ["" for _ in paragraphs]
+                marian_translations = ["" for _ in paragraphs]
+                openai_translations = ["" for _ in paragraphs]
+
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    # Google Translate
+                    google_futures = {executor.submit(translate_text_google, para): idx for idx, para in enumerate(paragraphs)}
+                    for i, future in enumerate(as_completed(google_futures)):
+                        idx = google_futures[future]
+                        google_translations[idx] = future.result()
+                        google_progress.progress((i + 1) / len(paragraphs), text=f"Google Translate: {int((i + 1) / len(paragraphs) * 100)}%")
+
+                    # MarianMT
+                    marian_futures = {executor.submit(translate_text_marian, para, tokenizer, model): idx for idx, para in enumerate(paragraphs)}
+                    for i, future in enumerate(as_completed(marian_futures)):
+                        idx = marian_futures[future]
+                        marian_translations[idx] = future.result()
+                        marian_progress.progress((i + 1) / len(paragraphs), text=f"MarianMT: {int((i + 1) / len(paragraphs) * 100)}%")
+
+                    # OpenAI GPT
+                    openai_futures = {executor.submit(translate_text_openai, para): idx for idx, para in enumerate(paragraphs)}
+                    for i, future in enumerate(as_completed(openai_futures)):
+                        idx = openai_futures[future]
+                        openai_translations[idx] = future.result()
+                        openai_progress.progress((i + 1) / len(paragraphs), text=f"OpenAI GPT: {int((i + 1) / len(paragraphs) * 100)}%")
+
+                # Збереження результатів у таблицю
+                output_file = os.path.join(TEMP_DIR, "Translated_from_URL.docx")
+                doc = docx.Document()
+                setup_document_orientation(doc)
+                add_title(doc)
+                create_translation_table(doc, paragraphs, google_translations, marian_translations, openai_translations)
+                doc.save(output_file)
+
+                st.success("Переклад завершено!")
+                st.download_button(
+                    label="Завантажити таблицю DOCX",
+                    data=open(output_file, "rb").read(),
+                    file_name="Переклад_URL.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
 
 elif section == "Про додаток":
     st.title("Про LegalTransUA")

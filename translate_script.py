@@ -79,6 +79,18 @@ def sanitize_filename(filename):
     """Очищає ім'я файлу від недопустимих символів."""
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
+def extract_text_from_url(url):
+    """Функція для витягнення тексту з веб-сторінки."""
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, 'html.parser')
+        # Отримати всі абзаци тексту
+        paragraphs = [p.text.strip() for p in soup.find_all('p') if p.text.strip()]
+        return paragraphs
+    except requests.exceptions.RequestException as e:
+        return f"Помилка при завантаженні URL: {e}"
+
 def split_text_into_chunks(text, max_length=500):
     """Розбиває текст на частини для перекладу."""
     words = text.split()
