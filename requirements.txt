@@ -9,3 +9,5 @@ bs4
 docx
 tqdm
 PyMuPDF
+beautifulsoup4
+deep-translator
