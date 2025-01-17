@@ -11,3 +11,4 @@ tqdm
 PyMuPDF
 beautifulsoup4
 deep-translator
+sentencepiece
