@@ -6,7 +6,7 @@ torch
 openai
 fitz
 bs4
-docx
+python-docx
 tqdm
 PyMuPDF
 beautifulsoup4
