@@ -11,4 +11,4 @@ tqdm
 beautifulsoup4
 deep-translator
 sentencepiece
-pymupdf==1.19.6
+pymupdf
