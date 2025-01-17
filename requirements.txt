@@ -8,7 +8,6 @@ fitz
 bs4
 python-docx
 tqdm
-PyMuPDF
 beautifulsoup4
 deep-translator
 sentencepiece
