@@ -21,6 +21,7 @@ from bs4 import BeautifulSoup
 import re
 from deep_translator import GoogleTranslator
 from dotenv import load_dotenv
+import shutil  # Для перейменування файлів
 
 # Завантаження змінних середовища з файлу .env
 load_dotenv(dotenv_path="key.env")
@@ -77,7 +78,8 @@ def choose_directory():
 
 def sanitize_filename(filename):
     """Очищає ім'я файлу від недопустимих символів."""
-    return re.sub(r'[<>:"/\\|?*]', '_', filename)
+    name, ext = os.path.splitext(filename)
+    return re.sub(r'[<>:"/\\|?*]', '_', name) + ext
 
 def extract_text_from_url(url):
     """Функція для витягнення тексту з веб-сторінки."""
@@ -123,7 +125,7 @@ def translate_text_google(text, max_retries=3):
             )
             time.sleep(2 ** attempt)
     logging.error("Google Translate: Помилка після кількох спроб")
-    return "Помилка перекладу через Google Translator"
+    return None
 
 def translate_text_marian(text, tokenizer, model):
     """Перекладає текст через MarianMT."""
@@ -225,10 +227,10 @@ def create_translation_table(doc, paragraphs, google_translations, marian_transl
     for i, (para, g_trans, m_trans, o_trans) in enumerate(zip(paragraphs, google_translations, marian_translations, openai_translations)):
         row_cells = table.add_row().cells
         row_cells[0].text = str(i + 1)
-        row_cells[1].text = para
-        row_cells[2].text = g_trans
-        row_cells[3].text = m_trans
-        row_cells[4].text = o_trans
+        row_cells[1].text = para if para else ""
+        row_cells[2].text = g_trans if g_trans else "Помилка перекладу"
+        row_cells[3].text = m_trans if m_trans else "Помилка перекладу"
+        row_cells[4].text = o_trans if o_trans else "Помилка перекладу"
 
         # Заливка для першої колонки
         row_cells[0]._element.get_or_add_tcPr().append(create_shading_element(row_number_fill_color))
@@ -265,6 +267,8 @@ def create_shading_element(color):
     shading.set(qn("w:fill"), color)
     return shading
 
+import shutil  # Для перейменування файлів
+
 def save_translation_document(source, paragraphs, google_translations, marian_translations, openai_translations):
     """Зберігає переклади в новий DOCX-документ."""
     doc = docx.Document()
@@ -277,14 +281,14 @@ def save_translation_document(source, paragraphs, google_translations, marian_tr
 
     # Визначення назви файлу
     if source.startswith("http"):
-        base_name = source.split("/")[-1]  # Беремо останню частину URL
+        base_name = source.split("/")[-1]
     else:
         base_name = os.path.splitext(os.path.basename(source))[0]
-    
+
     sanitized_name = sanitize_filename(base_name)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Вибір папки для збереження
+
+    # Завжди використовуємо розширення .docx
     save_directory = choose_directory()
     output_file = os.path.join(
         save_directory, f"{sanitized_name} (Translated by LTU) {timestamp}.docx"
@@ -294,38 +298,64 @@ def save_translation_document(source, paragraphs, google_translations, marian_tr
     doc.save(output_file)
     logging.info(f"Документ збережено за адресою: {output_file}")
 
+    # Примусове перейменування на .docx, якщо файл має інше розширення
+    if not output_file.endswith(".docx"):
+        corrected_file = f"{os.path.splitext(output_file)[0]}.docx"
+        shutil.move(output_file, corrected_file)
+        logging.info(f"Файл перейменовано з {output_file} на {corrected_file}")
+        output_file = corrected_file  # Оновлюємо шлях
 
-def process_document(source, tokenizer, model):
-    """Основна функція для обробки документа."""
-    paragraphs = extract_text(source)
-    logging.info(f"Знайдено абзаців: {len(paragraphs)}")
+    return output_file
 
-    # Ініціалізація MarianMT
-    model_name = "Helsinki-NLP/opus-mt-en-uk"
-    tokenizer = MarianTokenizer.from_pretrained(model_name)
-    model = MarianMTModel.from_pretrained(model_name)
 
-    google_translations = [""] * len(paragraphs)
-    marian_translations = [""] * len(paragraphs)
-    openai_translations = [""] * len(paragraphs)
+def process_document(source, tokenizer=None, model=None):
+    """Обробляє документ і зберігає вихідний файл у форматі DOCX."""
+    try:
+        paragraphs = extract_text(source)
+        if not paragraphs:
+            logging.error("Документ не містить тексту або текст не вдалося витягти.")
+            return
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        google_futures = {executor.submit(translate_text_google, para): idx for idx, para in enumerate(paragraphs)}
-        for future in tqdm(as_completed(google_futures), total=len(google_futures), desc="Google Translate", unit="paragraph"):
-            idx = google_futures[future]
-            google_translations[idx] = future.result()
+        logging.info(f"Знайдено абзаців: {len(paragraphs)}")
 
-        marian_futures = {executor.submit(translate_text_marian, para, tokenizer, model): idx for idx, para in enumerate(paragraphs)}
-        for future in tqdm(as_completed(marian_futures), total=len(marian_futures), desc="MarianMT", unit="paragraph"):
-            idx = marian_futures[future]
-            marian_translations[idx] = future.result()
+        # Ініціалізація MarianMT
+        if not tokenizer or not model:
+            model_name = "Helsinki-NLP/opus-mt-en-uk"
+            tokenizer = MarianTokenizer.from_pretrained(model_name)
+            model = MarianMTModel.from_pretrained(model_name)
 
-        openai_futures = {executor.submit(translate_text_openai, para): idx for idx, para in enumerate(paragraphs)}
-        for future in tqdm(as_completed(openai_futures), total=len(openai_futures), desc="OpenAI GPT", unit="paragraph"):
-            idx = openai_futures[future]
-            openai_translations[idx] = future.result()
+        # Підготовка списків для перекладів
+        google_translations = [""] * len(paragraphs)
+        marian_translations = [""] * len(paragraphs)
+        openai_translations = [""] * len(paragraphs)
 
-    save_translation_document(source, paragraphs, google_translations, marian_translations, openai_translations)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            # Google Translate
+            google_futures = {executor.submit(translate_text_google, para): idx for idx, para in enumerate(paragraphs)}
+            for future in tqdm(as_completed(google_futures), total=len(google_futures), desc="Google Translate"):
+                idx = google_futures[future]
+                google_translations[idx] = future.result() or "Помилка перекладу"
+
+            # MarianMT
+            marian_futures = {executor.submit(translate_text_marian, para, tokenizer, model): idx for idx, para in enumerate(paragraphs)}
+            for future in tqdm(as_completed(marian_futures), total=len(marian_futures), desc="MarianMT"):
+                idx = marian_futures[future]
+                marian_translations[idx] = future.result() or "Помилка перекладу"
+
+            # OpenAI GPT
+            openai_futures = {executor.submit(translate_text_openai, para): idx for idx, para in enumerate(paragraphs)}
+            for future in tqdm(as_completed(openai_futures), total=len(openai_futures), desc="OpenAI GPT"):
+                idx = openai_futures[future]
+                openai_translations[idx] = future.result() or "Помилка перекладу"
+
+        # Зберігаємо у форматі DOCX
+        output_file = save_translation_document(
+            source, paragraphs, google_translations, marian_translations, openai_translations
+        )
+        logging.info(f"Файл успішно збережено: {output_file}")
+
+    except Exception as e:
+        logging.error(f"Сталася помилка під час обробки документа: {e}")
 
 
 if __name__ == "__main__":

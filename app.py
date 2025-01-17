@@ -161,10 +161,11 @@ if section == "Головна сторінка":
                         openai_progress.progress((i + 1) / len(paragraphs), text=f"OpenAI GPT: {int((i + 1) / len(paragraphs) * 100)}%")
 
                 # Збереження результатів у файл
-                output_file = os.path.join(TEMP_DIR, f"Translated_{uploaded_file.name}")
+                base_name = os.path.splitext(uploaded_file.name)[0]
+                output_file = os.path.join(TEMP_DIR, f"{base_name}.docx")
                 doc = docx.Document()
 
-                # Налаштування стилів документа
+                # Налаштування документа
                 setup_document_orientation(doc)
                 add_title(doc)
                 create_translation_table(doc, paragraphs, google_translations, marian_translations, openai_translations)
@@ -173,10 +174,10 @@ if section == "Головна сторінка":
 
                 st.success("Переклад завершено!")
                 st.download_button(
-                    label="Завантажити таблицю DOCX",
-                    data=open(output_file, "rb").read(),
-                    file_name=f"Переклад_{uploaded_file.name}",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                label="Завантажити таблицю DOCX",
+                data=open(output_file, "rb").read(),
+                file_name=f"Переклад_{os.path.splitext(uploaded_file.name)[0]}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 )
 
     elif type_of_source == "URL":
