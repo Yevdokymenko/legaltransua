@@ -25,3 +25,4 @@ six
 sympy
 tenacity
 tornado
+frontend
