@@ -17,4 +17,4 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 # Команда для запуску Streamlit
-CMD ["streamlit", "run", "app.py", "--server.port=8000", "--server.enableCORS=false"]
+CMD ["streamlit", "run", "app.py", "--server.port=$PORT", "--server.enableCORS=false"]
