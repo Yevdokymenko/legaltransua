@@ -11,7 +11,7 @@ tqdm
 beautifulsoup4
 deep-translator
 sentencepiece
-PyMuPDF==1.22.3
+PyMuPDF==1.22.5
 altair==5.5.0
 beautifulsoup4==4.12.3
 frozenlist==1.5.0
