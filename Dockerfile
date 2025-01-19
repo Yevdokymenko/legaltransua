@@ -3,9 +3,13 @@ FROM python:3.11-slim
 
 # Встановлюємо системні залежності для PyMuPDF
 RUN apt-get update && apt-get install -y \
-    build-essential gcc libmupdf-dev mupdf-tools \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    gcc \
+    libmupdf-dev \
+    mupdf-tools \
+    libfreetype6-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    && apt-get clean
 
 # Створюємо робочу директорію
 WORKDIR /app
@@ -17,5 +21,5 @@ COPY . /app
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Вказуємо команду для запуску додатку
+# Запускаємо Streamlit додаток
 CMD ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=0.0.0.0"]
